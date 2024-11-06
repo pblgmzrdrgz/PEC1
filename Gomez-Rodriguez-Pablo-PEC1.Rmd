@@ -1,0 +1,91 @@
+---
+title: "Gomez-Rodriguez-Pablo-PEC1"
+author: "Pablo Gómez Rodríguez"
+date: "2024-11-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Selección del dataset de metabolómica
+
+Los datos para esta actividad se han escogido de una lista ubicada en un repositorio en Github procedente de **nutrimetabolomics**. De la carpeta de *Datasets* escogemos la de *Cachexia* por ser de las más recientes. Para ello empleamos los datos en formato original para poder importarlos directamente desde la página, acceso que se encuentra visible en el botón de ***Raw***.
+
+```{r}
+library(readr)
+met_cachexia <- read_csv("https://raw.githubusercontent.com/nutrimetabolomics/metaboData/refs/heads/main/Datasets/2024-Cachexia/human_cachexia.csv")
+
+
+```
+
+### Contenedor tipo SummarizedExperiment
+
+`SumarizedExperiment` tiene la ventaja de poder manejar diferentes resultados experimentales siempre que tengan la misma dimensión, además de coordinar el metadata y los datos del ensayo. Esto es útil pues permite mantenerlos en sincronía y efectuar cambios en ambos al mismo tiempo de querer eliminar una muestra o cambiarla si se diera el caso, lo que lo hace más flexible que `ExpressionSet`.
+
+```{r}
+# Cargamos los paquetes necesarios
+library(BiocManager)
+library(SummarizedExperiment)
+
+# Creamos los objetos de metadatos
+row_data <- DataFrame(row.names = rownames(met_cachexia))
+col_data <- DataFrame(col.names = colnames(met_cachexia))
+
+# Creamos el contenedor de tipo SummarizedExperiment
+se <- SummarizedExperiment(assays = list(counts = as.matrix(met_cachexia)),
+                           rowData = row_data,
+                           colData = col_data)
+```
+
+### Exploración del dataset
+
+```{r}
+# Obtenemos información sobre las dimensiones del dataset
+dim(se)
+dimnames(se)
+
+# Obtenemos un resumen de los datos
+summary(assay(se))
+
+# Exploramos los metadatos
+head(rowData(se))
+head(colData(se))
+```
+
+Primero obtenemos el número de variables ( = columnas - 2, por ser la primera el id del paciente y la segunda si presentaba Cachexia o era control), siendo **63** y el número de sujetos (= filas) siendo **77**. Entre las variables encontramos las biomoléculas que se midieron, estando listadas todas por el nombre de las columnas.
+
+```{r}
+library(ggplot2)
+anhy <- ggplot(met_cachexia, aes(x = met_cachexia$'Muscle loss', y = met_cachexia$'1,6-Anhydro-beta-D-glucose', fill = met_cachexia$'Muscle loss'))+ coord_cartesian(ylim = c(0, 400)) + geom_boxplot() + labs(title = 'Comparación de la 1,6-Anhydro-beta-D-glucose entre condición y control', x = 'Grupo', y = '1,6-Anhydro-beta-D-glucose') + theme(legend.position = 'none')
+
+methyl <- ggplot(met_cachexia, aes(x = met_cachexia$'Muscle loss', y = met_cachexia$'1-Methylnicotinamide', fill = met_cachexia$'Muscle loss')) + coord_cartesian(ylim = c(0, 250)) + geom_boxplot() + labs(title = 'Comparación de la 1-Methylnicotinamide entre condición y control', x = 'Grupo', y = "1-Methylnicotinamide") + theme(legend.position = 'none')
+
+amino <- ggplot(met_cachexia, aes(x = met_cachexia$'Muscle loss', y = met_cachexia$'2-Aminobutyrate', fill = met_cachexia$'Muscle loss')) + coord_cartesian(ylim = c(0, 50)) + geom_boxplot() + labs(title = 'Comparación de la 2-Aminobutyrate entre condición y control', x = 'Grupo', y = "2-Aminobutyrate") + theme(legend.position = 'none')
+
+hydro <- ggplot(met_cachexia, aes(x = met_cachexia$'Muscle loss', y = met_cachexia$'2-Hydroxyisobutyrate', fill = met_cachexia$'Muscle loss')) + coord_cartesian(ylim = c(0, 100)) + geom_boxplot() + labs(title = 'Comparación de la 2-Hydroxyisobutyrate entre condición y control', x = 'Grupo', y = "2-Hydroxyisobutyrate") + theme(legend.position = 'none')
+
+library(ggpubr)
+ggarrange(anhy, methyl, amino, hydro, ncol= 2, nrow =2)
+```
+
+Creamos unas gráficas de cajas para observar los datos y poder tener una comparativa rápida entre el grupo control y el que padece la caquexia. Para ello empleamos el paquete **`ggplot2`**, creando un gráfico que emplee una de las biomeléculas analizadas y separando en grupo *control* y *cachexic*. Luego ajustamos la escala del eje y para que sea más visible la diferencia media. Por último unimos el grupo de tablas creadas en una sola imágen con la función **`ggarrange`** del paquete **`ggpubr`**. Sería posible hacerlo para las 63 variables pero quedaría masificado y se debería hacer un análisis primero de las que cuentan con diferencias significativas estadísticamente.
+
+### Creación del repositorio en Github
+
+Para esta parte, creamos una nueva cuenta con el correo propio de la universidad (especificando ser estudiantes y solo trabajar nosotros dentro del repositorio). Dentro de la cuenta creamos un nuevo repositorio donde agregar los elementos que son necesarios para la entrega de la prueba:
+
+-   Informe
+
+-   Objeto contenedor de los datos y metadatos en formato binario (.Rda)
+
+-   Datos en formato texto
+
+-   Metadatos en un archivo markdown (.Rmd)
+
+    -   Archivo README (se marca esta opción a la hora de crear el repositorio)
+
+La dirección del repositorio la encontramos dentro del deplegable de *Code* y es la siguiente: <https://github.com/pblgmzrdrgz/PEC1.git>
